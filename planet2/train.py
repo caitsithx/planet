@@ -1,10 +1,17 @@
 import settings
 
 import torch
+import numpy as np
+import random
+
+random.seed(1234)
+torch.manual_seed(5678)
+np.random.seed(2468)
+#torch.backends.cudnn.enabled = False
+
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
-import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
@@ -12,30 +19,27 @@ import time
 import copy
 import os
 import cv2
-import random
 import argparse
 import bcolz
 import pandas as pd
-import random
 from PIL import Image
 from sklearn.metrics import fbeta_score
 import torch.nn.functional as F
 
 from utils import save_array, load_array, save_weights, load_best_weights, w_files_training
-from utils import create_dense161, create_dense201, create_res101, create_res152, create_dense169, create_res50
-from utils import create_vgg19bn, create_vgg16bn, create_dense121, create_inceptionv3
 from utils import create_model
 from cscreendataset import get_train_loader, get_val_loader
 from utils import optimise_f2_thresholds
 
-data_dir = '/home/chicm/data/planet'
+data_dir = settings.DATA_DIR
+MODEL_DIR = settings.MODEL_DIR
 
 RESULT_DIR = data_dir + '/results'
 THRESHOLD_FILE = RESULT_DIR + '/best_threshold.dat'
 #CLASSES_FILE = RESULT_DIR + '/train_classes.dat'
-MODEL_DIR = data_dir + '/models'
+
 batch_size = 16
-epochs = 30
+epochs = 20
 
 
 def logits_to_probs(logits, is_force_single_weather=False):
@@ -152,7 +156,7 @@ def train_model(model, criterion, optimizer, lr_scheduler, max_num=2, init_lr=0.
                     num = 0
                     train_acc = f_measure(outputs.data, labels.data)
                     train_loss = loss.data[0]
-                    print('\r%5.1f   %5d    %0.4f   |  %0.3f  %0.3f  %5.3f | ... ' % \
+                    print('\r%5.1f   %5d    %0.4f   |  %0.4f  %0.4f  %5.4f | ... ' % \
                         (epoch, it + 1, rate, smooth_loss, train_loss, train_acc),\
                         end='',flush=True)
 
@@ -169,7 +173,7 @@ def train_model(model, criterion, optimizer, lr_scheduler, max_num=2, init_lr=0.
             assert(test_num==val_loader.num)
             
             print('\r',end='',flush=True)
-            print('%5.1f   %5d    %0.4f   |  %0.3f  %0.3f  %5.3f | %0.3f  %5.3f  |  %3.1f min' % \
+            print('%5.1f   %5d    %0.4f   |  %0.4f  %0.4f  %5.4f | %0.4f  %5.4f  |  %3.1f min' % \
                     (epoch + 1, it + 1, rate, smooth_loss, train_loss, train_acc, test_loss,test_acc, epoch_time))
             
             save_weights(test_acc, model, epoch, max_num=max_num)
@@ -210,7 +214,7 @@ def cyc_lr_scheduler(optimizer, epoch, init_lr=0.001, lr_decay_epoch=2):
     return optimizer
 
 
-def train(model, init_lr=0.001, num_epochs=epochs):
+def train(model, init_lr=0.0005, num_epochs=epochs):
     # nn.CrossEntropyLoss() nn.MultiLabelMarginLoss()
     criterion = nn.MultiLabelSoftMarginLoss()
     # Observe that all parameters are being optimized

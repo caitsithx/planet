@@ -36,6 +36,7 @@ PRED_FILE_RAW = RESULT_DIR + '/pred_ens_raw.dat'
 TEST_FILE_NAMES = RESULT_DIR + '/filenames.dat'
 
 PRED_VAL = RESULT_DIR + '/pred_val.dat'
+PRED_VAL_RAW = RESULT_DIR + '/pred_val_raw.dat'
 VAL_LABELS = RESULT_DIR + '/val_labels.dat'
 
 PRED_WEATHER = RESULT_DIR + '/pred_weather.dat'
@@ -89,7 +90,7 @@ def ensemble_val_data():
             labels.append(y)
             del model
 
-    #save_array(PRED_FILE_RAW, preds_raw)
+    save_array(PRED_VAL_RAW, preds_raw)
     preds = np.mean(preds_raw, axis=0)
     save_array(PRED_VAL, preds)
     save_array(VAL_LABELS, labels)
@@ -131,6 +132,26 @@ def get_one_weather(weather, thr, dominate, delta = 0.2):
         res.append(row)
 
     return np.array(res)
+
+def force_one_weather(weather, thr):
+    res = []
+    for wrow in weather:
+        row = wrow.copy()
+        maxw = 0
+        maxindex = -1
+        for i, w in enumerate(row):
+            if w-thr[i] > maxw:
+                maxw = w-thr[i]
+                maxindex = i
+
+        for j in range(4):
+            if j == maxindex:
+                row[j] = 0.99
+            else:
+                row[j] = 0
+        res.append(row)
+
+    return np.array(res)
             
 
 def find_best_weather():
@@ -169,6 +190,9 @@ def find_best_weather():
         d += 0.1
     
     print('best d:{}'.format(best_d))
+    w1 = force_one_weather(weather, thr)
+    score1 = mf(w1)
+    print('force one weather score:{}'.format(score1))
 
     if max_score > base_score+0.00001:
         test_preds = load_array(PRED_FILE)
@@ -217,8 +241,8 @@ def ensemble():
 
 def submit(filename):
     df_test = pd.read_csv(TEST_LIST_FILE)
-    #preds = load_array(PRED_FILE)
-    preds = load_array(PRED_WEATHER)
+    preds = load_array(PRED_FILE)
+    #preds = load_array(PRED_WEATHER)
     threshold = load_array(THRESHOLD_FILE_ENS).tolist()
     #threshold = 0.18
     print(threshold)

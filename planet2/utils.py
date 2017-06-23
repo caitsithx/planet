@@ -21,7 +21,7 @@ from inception import inception_v3
 from vgg import vgg19_bn, vgg16_bn
 from sklearn.metrics import fbeta_score
 
-MODEL_DIR = '/home/chicm/data/planet/models'
+MODEL_DIR = settings.MODEL_DIR
 
 def get_multi_classes(score, classes, threshold, nil=''):
     N = len(classes)

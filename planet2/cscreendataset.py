@@ -9,7 +9,7 @@ from torchvision import datasets, models, transforms
 import random
 #import transforms
 
-DATA_DIR = '/home/chicm/data/planet'
+DATA_DIR = settings.DATA_DIR
 TRAIN_DIR = DATA_DIR + '/train-jpg'
 TEST1_DIR = DATA_DIR + '/test-jpg'
 TEST2_DIR = DATA_DIR + '/test-jpg-add'
@@ -24,7 +24,7 @@ def pil_load(img_path):
             return img.convert('RGB')
 
 class PlanetDataset(data.Dataset):
-    def __init__(self, file_list_path, train_data=True, has_label = True, transform=None, split=0.8):
+    def __init__(self, file_list_path, train_data=True, has_label = True, transform=None, split=0.9):
         df_train = pd.read_csv(file_list_path)
         if has_label:
             split_index = (int)(df_train.values.shape[0] * split)
@@ -154,7 +154,8 @@ def get_train_loader(model, batch_size = 16, shuffle = True):
         transkey = 'train'
     if hasattr(model, 'batch_size'):
         batch_size = model.batch_size
-
+    #train_v2.csv
+    print('batch size:{}'.format(batch_size))
     dset = PlanetDataset(DATA_DIR+'/train_v2.csv', transform=data_transforms[transkey])
     dloader = torch.utils.data.DataLoader(dset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
     dloader.num = dset.num
@@ -167,7 +168,8 @@ def get_val_loader(model, batch_size = 16, shuffle = True):
         transkey = 'valid'
     if hasattr(model, 'batch_size'):
         batch_size = model.batch_size
-
+    print('batch size:{}'.format(batch_size))
+    #train_v2.csv
     dset = PlanetDataset(DATA_DIR+'/train_v2.csv', train_data=False, transform=data_transforms[transkey])
     dloader = torch.utils.data.DataLoader(dset,  batch_size=batch_size, shuffle=shuffle, num_workers=4)
     dloader.num = dset.num
@@ -180,6 +182,7 @@ def get_test_loader(model, batch_size = 16, shuffle = False):
         transkey = 'test'
     if hasattr(model, 'batch_size'):
         batch_size = model.batch_size
+    print('batch size:{}'.format(batch_size))
 
     dset = PlanetDataset(DATA_DIR+'/sample_submission_v2.csv', has_label=False, transform=data_transforms[transkey])
     dloader = torch.utils.data.DataLoader(dset,  batch_size=batch_size, shuffle=shuffle, num_workers=4)
