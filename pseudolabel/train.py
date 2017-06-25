@@ -39,9 +39,11 @@ THRESHOLD_FILE = RESULT_DIR + '/best_threshold.dat'
 #CLASSES_FILE = RESULT_DIR + '/train_classes.dat'
 
 batch_size = 16
-epochs = 20
+epochs = 15
 
-thr = [0.21, 0.25, 0.09, 0.07, 0.27, 0.21, 0.23, 0.24, 0.22, 0.21, 0.16, 0.07, 0.13, 0.1, 0.26, 0.39, 0.03]
+#thr = [0.21, 0.25, 0.09, 0.07, 0.27, 0.21, 0.23, 0.24, 0.22, 0.21, 0.16, 0.07, 0.13, 0.1, 0.26, 0.39, 0.03]
+thr = [0.24, 0.29, 0.17, 0.16, 0.37, 0.26, 0.23, 0.27, 0.19, 0.32, 0.11, 0.1, 0.18, 0.36, 0.27, 0.4, 0.07]   #threshold of 0.93086
+
 
 def logits_to_probs(logits, is_force_single_weather=False):
 
