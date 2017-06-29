@@ -23,6 +23,35 @@ from sklearn.metrics import fbeta_score
 
 MODEL_DIR = settings.MODEL_DIR
 
+def get_pred_from_prob(probs, threshold):
+    pred = np.zeros_like(probs)
+    for i in range(17):
+        pred[:, i] = (probs[:, i] > threshold[i]).astype(np.int)
+    return pred
+
+def voting(probs, threshold):
+    #result = np.zeros_like(preds[0])
+    result = np.mean(probs, axis=0)
+    result = get_pred_from_prob(result, threshold)
+
+    preds = []
+    for prob in probs:
+        preds.append(get_pred_from_prob(prob, threshold))
+
+    print(result[:5])
+    for i, row in enumerate(result):
+        for j in range(17):
+            ones = 0
+            num = len(preds)
+            for n in range(len(preds)):
+                if preds[n][i, j] == 1:
+                    ones += 1
+            if ones > num / 2:
+                result[i, j] = 1
+            elif ones < num / 2:
+                result[i, j] = 0
+    return result
+
 def get_multi_classes(score, classes, threshold, nil=''):
     N = len(classes)
     if not isinstance(threshold,list) : threshold = [threshold]*N

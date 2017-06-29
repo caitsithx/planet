@@ -45,8 +45,9 @@ class PlanetDataset(data.Dataset):
                     labels[i][label_map[t]] = 1
 
             if train_data:  # read pseudo labels
-                N_PSEUDO = 25000
+                N_PSEUDO = 20000
                 df = pd.read_csv(pseudo_label_file)
+                #test_data = np.random.permutation(df.values)
                 pseudo_labels = [None] * N_PSEUDO
                 test_filenames = [None] * N_PSEUDO
                 for i, row in enumerate(df.values[:N_PSEUDO]):

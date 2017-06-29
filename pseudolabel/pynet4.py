@@ -226,3 +226,5 @@ class PyNet_4(nn.Module):
         prob = F.sigmoid(logit)
 
         return logit, prob
+
+model = PyNet_4((3,224,224), 17)

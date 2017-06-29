@@ -5,9 +5,9 @@ import settings
 
 DATA_DIR = settings.DATA_DIR
 
-tgt_file = DATA_DIR+'/train_cultivation.csv'
+tgt_file = DATA_DIR+'/train_water_cultivation.csv'
 
-df_train = pd.read_csv(DATA_DIR+'/train_v2.csv')
+df_train = pd.read_csv(DATA_DIR+'/train_water.csv')
 
 for i, row in enumerate(df_train.values):
     tags = row[1].split(' ')

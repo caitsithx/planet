@@ -21,17 +21,21 @@ import torch.nn.functional as F
 from sklearn.metrics import fbeta_score
 from utils import save_array, load_array, get_acc_from_w_filename
 from utils import get_multi_classes, create_model, optimise_f2_thresholds
+from utils import voting
 from cscreendataset import classes, get_test_loader, get_val_loader
 
 data_dir = settings.DATA_DIR
 MODEL_DIR = settings.MODEL_DIR
-RESULT_DIR = data_dir + '/results'
+RESULT_DIR = settings.RESULT_DIR
+
 PRED_DIR = RESULT_DIR + '/preds'
 
 TEST_LIST_FILE = data_dir + '/sample_submission_v2.csv'
 THRESHOLD_FILE_ENS = RESULT_DIR + '/best_threshold_ens.dat'
 
 PRED_FILE = RESULT_DIR + '/pred_ens.dat'
+PRED_FILE_RAW = RESULT_DIR + '/pred_ens_raw.dat'
+PRED_LIST = RESULT_DIR + '/pred_list.dat'
 
 PRED_VAL = RESULT_DIR + '/pred_val.dat'
 PRED_VAL_RAW = RESULT_DIR + '/pred_val_raw.dat'
@@ -201,9 +205,15 @@ def find_best_weather():
 
         save_array(PRED_WEATHER, test_preds)
 
-def make_preds(net):
+def make_preds(weight_file_name):
+    full_w_file = MODEL_DIR + '/' + weight_file_name
+
+    mname = weight_file_name.split('_')[0]
+    print(full_w_file)
+    net = create_model(mname)
+    net.load_state_dict(torch.load(full_w_file))
     
-    pred_dir = os.path.join(PRED_DIR, net.name)
+    pred_dir = os.path.join(PRED_DIR, weight_file_name)
 
     if not os.path.exists(pred_dir):
         os.mkdir(pred_dir)
@@ -227,33 +237,62 @@ def make_preds(net):
         all_preds.append(preds)
     mean_preds = np.mean(all_preds, axis=0)
     save_array(pred_dir+'/final', mean_preds)
+
+    del net
+
     return mean_preds
 
 def ensemble():
     preds_raw = []
-    
+    model_file_list = []
     for match_str in w_file_matcher:
         os.chdir(MODEL_DIR)
         w_files = glob.glob(match_str)
         for w_file in w_files:
-            full_w_file = MODEL_DIR + '/' + w_file
-            mname = w_file.split('_')[0]
-            print(full_w_file)
-            model = create_model(mname)
-            model.load_state_dict(torch.load(full_w_file))
+            model_file_list.append(w_file)
 
-            pred = make_preds(model)
+            pred = make_preds(w_file)
             pred = np.array(pred)
             preds_raw.append(pred)
-            del model
 
+    save_array(PRED_LIST, model_file_list)
+    save_array(PRED_FILE_RAW, preds_raw)
     preds = np.mean(preds_raw, axis=0)
     save_array(PRED_FILE, preds)
 
+def get_final_preds():
+    filenames = glob.glob(PRED_DIR + '/*/final')
+    preds = []
+    for f in filenames:
+        print(f)
+        pred = load_array(f)
+        preds.append(pred)
+    return preds
+
+def create_voting_sub(fn):
+    threshold = load_array(THRESHOLD_FILE_ENS).tolist()
+    print(threshold)
+    preds = get_final_preds()
+    
+    print(len(preds))
+    voted = voting(preds, threshold)
+    print(voted[:5])
+
+    df_test = pd.read_csv(TEST_LIST_FILE)
+
+    for i, pred in enumerate(voted):
+        tags = get_multi_classes(pred, classes, threshold)
+        df_test['tags'][i] = tags
+    df_test.to_csv(RESULT_DIR+'/'+fn, index=False)
+
+
 def submit(filename):
     df_test = pd.read_csv(TEST_LIST_FILE)
-    preds = load_array(PRED_FILE)
+    #preds = load_array(PRED_FILE)
     #preds = load_array(PRED_WEATHER)
+    preds = get_final_preds()
+    preds = np.mean(preds, axis=0)
+    
     threshold = load_array(THRESHOLD_FILE_ENS).tolist()
     #threshold = 0.18
     print(threshold)
@@ -266,12 +305,51 @@ def submit(filename):
     print(df_test.head())
 
 
+def create_sub_from_pred_file():
+    threshold = load_array(THRESHOLD_FILE_ENS).tolist()
+    print(threshold)
+    filenames = glob.glob(PRED_DIR + '/*/final')
+    for f in filenames:
+        print(f)
+        probs = load_array(f)
+        df_test = pd.read_csv(TEST_LIST_FILE)
+        for i, pred in enumerate(probs):
+            tags = get_multi_classes(pred, classes, threshold)
+            df_test['tags'][i] = tags
+        df_test.to_csv(f+'_sub.csv', index=False)
+
+def create_sub_from_weighted_model(model_file_names, weights, sub_filename):
+    threshold = load_array(THRESHOLD_FILE_ENS).tolist()
+    print(threshold)
+    preds = None
+    total_weight = 0
+    for i, fn in enumerate(model_file_names):
+        p = load_array(PRED_DIR + '/' + fn + '/final') * weights[i]
+        if preds is None:
+            preds = p
+        preds += p
+        total_weight += weights[i]
+
+    preds /= total_weight
+    df_test = pd.read_csv(TEST_LIST_FILE)
+
+    for i, pred in enumerate(preds):
+        tags = get_multi_classes(pred, classes, threshold)
+        df_test['tags'][i] = tags
+    df_test.to_csv(RESULT_DIR + '/' + sub_filename, index=False)
+    
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--ens", action='store_true', help="ensemble predict")
+parser.add_argument("--predf", action='store_true', help="ensemble predict")
 parser.add_argument("--ensval", action='store_true', help="ensemble predict")
 parser.add_argument("--thr", action='store_true', help="ensemble predict")
 parser.add_argument("--weather", action='store_true', help="ensemble predict")
 parser.add_argument("--sub", nargs=1, help="generate submission file")
+parser.add_argument("--vote", nargs=1, help="generate submission file")
+parser.add_argument("--subsingle", action='store_true', help="ensemble predict")
+parser.add_argument("--subw", nargs=1, help="generate submission file")
 
 args = parser.parse_args()
 if args.ens:
@@ -288,3 +366,19 @@ if args.sub:
     submit(args.sub[0])
     print('done')
     print('Please find submisson file at: {}'.format(RESULT_DIR+'/'+args.sub[0]))
+if args.vote:
+    print('generating voting submision file...')
+    create_voting_sub(args.vote[0])
+    print('done')
+if args.subsingle:
+    create_sub_from_pred_file()
+if args.subw:
+    mfiles = ['dense161_8_0.93172_.pth', 'dense201_12_0.92993_.pth', 'dense121_11_0.93093_.pth', 
+        'res101_14_0.93156_.pth', 'res152_6_0.93012_.pth', 'inceptionv3_12_0.92727_.pth', 'vgg19bn_3_0.92535_.pth']
+    w = [1, 1, 1, 1, 1, 0.7, 0.7]
+    create_sub_from_weighted_model(mfiles, w, args.subw[0])
+    print('done')
+if args.predf:
+    mfiles = ['dense169_11_0.93117_.pth', 'vgg16bn_10_0.92676_.pth', 'vgg19bn_14_0.92884_.pth']
+    for mfile in mfiles:
+        make_preds(mfile)
