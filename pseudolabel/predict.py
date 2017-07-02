@@ -43,6 +43,9 @@ VAL_LABELS = RESULT_DIR + '/val_labels.dat'
 
 PRED_WEATHER = RESULT_DIR + '/pred_weather.dat'
 
+water_threshold = [0.54, 0.35, 0.46,  0.49,  0.49] #[0.34, 0.22, 0.29, 0.29, 0.29]
+WATER_PRED = '/home/chicm/data/planet/results/93091_water/water/pred_ens.dat'
+
 batch_size = 16
 
 w_file_matcher = ['dense161*pth', 'dense201*pth','dense169*pth','dense121*pth','inceptionv3*pth',
@@ -260,8 +263,11 @@ def ensemble():
     preds = np.mean(preds_raw, axis=0)
     save_array(PRED_FILE, preds)
 
-def get_final_preds():
-    filenames = glob.glob(PRED_DIR + '/*/final')
+def get_final_preds(single=True):
+    if single:
+        filenames = glob.glob(PRED_DIR + '/*/final')
+    else:
+        filenames = glob.glob(PRED_DIR + '/*/roate*')
     preds = []
     for f in filenames:
         print(f)
@@ -272,7 +278,7 @@ def get_final_preds():
 def create_voting_sub(fn):
     threshold = load_array(THRESHOLD_FILE_ENS).tolist()
     print(threshold)
-    preds = get_final_preds()
+    preds = get_final_preds(False)
     
     print(len(preds))
     voted = voting(preds, threshold)
@@ -292,10 +298,19 @@ def submit(filename):
     #preds = load_array(PRED_WEATHER)
     preds = get_final_preds()
     preds = np.mean(preds, axis=0)
-    
+
     threshold = load_array(THRESHOLD_FILE_ENS).tolist()
     #threshold = 0.18
     print(threshold)
+
+    if False:
+        threshold[5:10] = water_threshold
+        print(threshold)
+        print(preds[:1])
+        print(load_array(WATER_PRED).shape)
+        preds[:, 5:10] = load_array(WATER_PRED)
+        print(preds[:1])
+        #return
     
     for i, pred in enumerate(preds):
         tags = get_multi_classes(pred, classes, threshold)
@@ -337,6 +352,7 @@ def create_sub_from_weighted_model(model_file_names, weights, sub_filename):
         tags = get_multi_classes(pred, classes, threshold)
         df_test['tags'][i] = tags
     df_test.to_csv(RESULT_DIR + '/' + sub_filename, index=False)
+
     
 
 
@@ -373,12 +389,13 @@ if args.vote:
 if args.subsingle:
     create_sub_from_pred_file()
 if args.subw:
-    mfiles = ['dense161_8_0.93172_.pth', 'dense201_12_0.92993_.pth', 'dense121_11_0.93093_.pth', 
-        'res101_14_0.93156_.pth', 'res152_6_0.93012_.pth', 'inceptionv3_12_0.92727_.pth', 'vgg19bn_3_0.92535_.pth']
-    w = [1, 1, 1, 1, 1, 0.7, 0.7]
+    mfiles = ['dense161_8_0.93172_.pth', 'dense161_5_0.93093_.pth', 'dense201_12_0.92993_.pth', 'dense121_11_0.93093_.pth', 
+        'res101_14_0.93156_.pth', 'res101_8_0.93120_.pth', 'res152_6_0.93012_.pth', 'res152_5_0.92974_.pth', 'inceptionv3_12_0.92727_.pth', 
+        'vgg19bn_3_0.92535_.pth', 'dense169_11_0.92701_.pth']
+    w = [1.2, 1.2, 1.1, 1, 1.1, 1.2, 1.1, 1.1, 0.8, 0.8, 0.8]
     create_sub_from_weighted_model(mfiles, w, args.subw[0])
     print('done')
 if args.predf:
-    mfiles = ['dense169_11_0.93117_.pth', 'vgg16bn_10_0.92676_.pth', 'vgg19bn_14_0.92884_.pth']
+    mfiles = ['dense161_28_0.93236_.pth']
     for mfile in mfiles:
         make_preds(mfile)
