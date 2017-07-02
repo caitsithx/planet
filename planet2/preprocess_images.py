@@ -28,21 +28,24 @@ def resize_640(src_dir, tgt_dir, match_str):
     try_mkdir(tgt_dir)
 
     files = glob.glob(src_dir + "/" + match_str)
-    for f in files:
-        if f in blacklist:
+    print("image num: %d" % len(files))
+    for file_path in files:
+        if file_path in blacklist:
             continue
             # print('')
             # print('skipping {}'.format(f))
-        fn = src_dir + '/' + f
+        paths = file_path.split("/")
+        file_name = paths[len(paths) - 1].split(".")[0]
+
         print('.', end='', flush=True)
-        tgt_fn = tgt_dir + '/' + f
+        tgt_fn = tgt_dir + '/' + file_name
 
         if os.path.exists(tgt_fn):
-            split = f.split('.')
+            split = file_path.split('.')
             tgt_fn = tgt_dir + '/' + split[0] + '_add.' + split[1]
             # print(tgt_fn)
 
-        img = cv2.imread(fn)
+        img = cv2.imread(file_path)
         res = cv2.resize(img, (640, 640))
         cv2.imwrite(tgt_fn, res)
 
