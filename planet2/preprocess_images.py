@@ -27,8 +27,7 @@ def resize_640(src_dir, tgt_dir, match_str):
 
     try_mkdir(tgt_dir)
 
-    os.chdir(src_dir)
-    files = glob.glob(match_str)
+    files = glob.glob(src_dir + "/" + match_str)
     for f in files:
         if f in blacklist:
             continue
@@ -51,7 +50,7 @@ def resize_640(src_dir, tgt_dir, match_str):
 def resize_images():
     for img_dir in img_dirs:
         resize_640(DATA_DIR + "/" + img_dir,
-                   DATA_DIR + "/" + img_dir + "-640", "*/*.jpg")
+                   DATA_DIR + "/" + img_dir + "-640", "*.jpg")
 
 
 if __name__ == "__main__":
