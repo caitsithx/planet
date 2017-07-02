@@ -35,7 +35,7 @@ def resize_640(src_dir, tgt_dir, match_str):
             # print('')
             # print('skipping {}'.format(f))
         paths = file_path.split("/")
-        file_name = paths[len(paths) - 1].split(".")[0]
+        file_name = paths[len(paths) - 1]
 
         print('.', end='', flush=True)
         tgt_fn = tgt_dir + '/' + file_name
