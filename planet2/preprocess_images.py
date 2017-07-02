@@ -45,6 +45,7 @@ def resize_640(src_dir, tgt_dir, match_str):
             tgt_fn = tgt_dir + '/' + split[0] + '_add.' + split[1]
             # print(tgt_fn)
 
+        print("resize %s to %s" % (file_path, tgt_fn))
         img = cv2.imread(file_path)
         res = cv2.resize(img, (640, 640))
         cv2.imwrite(tgt_fn, res)
