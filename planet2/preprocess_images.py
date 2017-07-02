@@ -1,11 +1,11 @@
 import glob
 import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
-import cv2
+import numpy as np
+from skimage import io, transform
 
 from settings import *
-
-img_dirs = ["train-jpg", "test-jpg", "test-jpg-add"]
 
 blacklist = ['Type_2/2845.jpg', 'Type_2/5892.jpg', 'Type_1/5893.jpg',
              'Type_1/1339.jpg', 'Type_1/3068.jpg', 'Type_2/7.jpg',
@@ -28,27 +28,43 @@ def resize_640(src_dir, tgt_dir, match_str):
     try_mkdir(tgt_dir)
 
     files = glob.glob(src_dir + "/" + match_str)
-    print("image num: %d" % len(files))
-    for file_path in files:
-        if file_path in blacklist:
-            continue
-            # print('')
-            # print('skipping {}'.format(f))
-        paths = file_path.split("/")
-        file_name = paths[len(paths) - 1]
 
-        print('.', end='', flush=True)
-        tgt_fn = tgt_dir + '/' + file_name
+    file_num = len(files)
+    print("image num: %d" % file_num)
+    futures = []
+    with ProcessPoolExecutor(max_workers=4) as executor:
+        for file_path in files:
+            if file_path in blacklist:
+                continue
+                # print('')
+                # print('skipping {}'.format(f))
+            paths = file_path.split("/")
+            file_name = paths[len(paths) - 1]
 
-        if os.path.exists(tgt_fn):
-            split = file_path.split('.')
-            tgt_fn = tgt_dir + '/' + split[0] + '_add.' + split[1]
-            # print(tgt_fn)
+            tgt_fn = tgt_dir + '/' + file_name
 
-        print("resize %s to %s" % (file_path, tgt_fn))
-        img = cv2.imread(file_path)
-        res = cv2.resize(img, (640, 640))
-        cv2.imwrite(tgt_fn, res)
+            if os.path.exists(tgt_fn):
+                split = file_path.split('.')
+                tgt_fn = tgt_dir + '/' + split[0] + '_add.' + split[1]
+
+            futures.append(executor.submit(resize_image_640, file_path,
+                                           tgt_fn))
+            # resize_image_640(file_path, tgt_fn)
+
+        for f in as_completed(futures):
+            file_num -= 1
+            if file_num % 100 == 0:
+                print("remaining %d images to resize" % file_num)
+
+
+def resize_image_640(src_img_path, tgt_img_path):
+    # print("resize %s to %s" % (src_img_path, tgt_img_path))
+    img = io.imread(src_img_path)
+    # print(img.dtype)
+    res = transform.resize(img, (640, 640), preserve_range=True,
+                           mode='constant')
+    # print(res.dtype)
+    io.imsave(tgt_img_path, res.astype(np.uint8))
 
 
 def resize_images():
