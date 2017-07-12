@@ -196,7 +196,7 @@ def create_res101(load_weights=False, num_classes=17):
     model_ft = model_ft.cuda()
 
     model_ft.name = 'res101'
-    model_ft.batch_size = 32
+    model_ft.batch_size = 16
     model_ft.max_num = 2
     return model_ft
 
@@ -242,7 +242,7 @@ def create_dense121(load_weights=False, num_classes=17):
     desnet_ft = desnet_ft.cuda()
 
     desnet_ft.name = 'dense121'
-    desnet_ft.batch_size = 32
+    desnet_ft.batch_size = 16
     return desnet_ft
 
 

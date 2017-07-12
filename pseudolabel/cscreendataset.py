@@ -44,7 +44,7 @@ class PlanetDataset(data.Dataset):
                 for t in tags.split(' '):
                     labels[i][label_map[t]] = 1
 
-            if train_data:  # read pseudo labels
+            if train_data and not (pseudo_label_file is None):  # read pseudo labels
                 N_PSEUDO = 20000
                 df = pd.read_csv(pseudo_label_file)
                 #test_data = np.random.permutation(df.values)
@@ -118,42 +118,12 @@ def rotateImg(img, d=0):
 
     return img2
 
-def cv2Resize(img, w):
-    return cv2.resize(img, (w,w))
-
-def randomHorizontalFlip(img):
-    if random.random() < 0.5:
-        img = cv2.flip(img,1)  #np.fliplr(img)  #cv2.flip(img,1) ##left-right
-    return img
-
-def cv2Rotate(img):
-    angel = random.randint(0,180)
-    reflect101 = cv2.copyMakeBorder(img, 100,100,100,100, cv2.BORDER_REFLECT_101)
-    rotated = imutils.rotate_bound(reflect101, angel)
-    n = int(rotated.shape[0] / 2)
-    img2 = rotated[n-128:n+128, n-128:n+128]
-    return img2
-
-def rotate90(img, rotate=0):
-    if True:
-        angle=int(rotate*90)
-        if angle == 0:
-            return img
-        if angle == 90:
-            img = cv2.transpose(img)
-            img = cv2.flip(img,1)
-        elif angle == 180:
-            img = cv2.flip(img,-1)
-        elif angle == 270:
-            img = cv2.transpose(img)
-            img = cv2.flip(img,0)
-    return img
 
 data_transforms = {
     'train': transforms.Compose([
         #transforms.Scale(320), 
         #transforms.RandomSizedCrop(224),
-        transforms.Scale(224), 
+        #transforms.Scale(224), 
         transforms.RandomHorizontalFlip(),
         transforms.Lambda(lambda x: randomRotate(x)),
         transforms.ToTensor(),
@@ -168,7 +138,7 @@ data_transforms = {
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
     'valid': transforms.Compose([
-        transforms.Scale(224),
+        #transforms.Scale(224),
         #transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -180,7 +150,7 @@ data_transforms = {
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
     'test': transforms.Compose([
-        transforms.Scale(224),
+        #transforms.Scale(224),
         #transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -195,25 +165,25 @@ data_transforms = {
 
 tta_transforms = {
     'test0': transforms.Compose([
-        transforms.Scale(224),
+        #transforms.Scale(224),
         transforms.Lambda(lambda x: rotateImg(x, 0)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
     'test1': transforms.Compose([
-        transforms.Scale(224),
+        #transforms.Scale(224),
         transforms.Lambda(lambda x: rotateImg(x, 1)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
     'test2': transforms.Compose([
-        transforms.Scale(224),
+        #transforms.Scale(224),
         transforms.Lambda(lambda x: rotateImg(x, 2)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
     'test3': transforms.Compose([
-        transforms.Scale(224),
+        #transforms.Scale(224),
         transforms.Lambda(lambda x: rotateImg(x, 3)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -269,7 +239,7 @@ def get_train_loader(model, batch_size = 16, shuffle = True):
         batch_size = model.batch_size
     #train_v2.csv
     print('batch size:{}'.format(batch_size))
-    dset = PlanetDataset(DATA_DIR+'/train_v2.csv', pseudo_label_file=DATA_DIR+'/pseudo_labels.csv', transform=data_transforms[transkey])
+    dset = PlanetDataset(DATA_DIR+'/train_v2.csv', pseudo_label_file=None, transform=data_transforms[transkey])
     dloader = torch.utils.data.DataLoader(dset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
     dloader.num = dset.num
     return dloader
