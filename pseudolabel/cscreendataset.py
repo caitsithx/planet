@@ -118,6 +118,36 @@ def rotateImg(img, d=0):
 
     return img2
 
+def cv2Resize(img, w):
+    return cv2.resize(img, (w,w))
+
+def randomHorizontalFlip(img):
+    if random.random() < 0.5:
+        img = cv2.flip(img,1)  #np.fliplr(img)  #cv2.flip(img,1) ##left-right
+    return img
+
+def cv2Rotate(img):
+    angel = random.randint(0,180)
+    reflect101 = cv2.copyMakeBorder(img, 100,100,100,100, cv2.BORDER_REFLECT_101)
+    rotated = imutils.rotate_bound(reflect101, angel)
+    n = int(rotated.shape[0] / 2)
+    img2 = rotated[n-128:n+128, n-128:n+128]
+    return img2
+
+def rotate90(img, rotate=0):
+    if True:
+        angle=int(rotate*90)
+        if angle == 0:
+            return img
+        if angle == 90:
+            img = cv2.transpose(img)
+            img = cv2.flip(img,1)
+        elif angle == 180:
+            img = cv2.flip(img,-1)
+        elif angle == 270:
+            img = cv2.transpose(img)
+            img = cv2.flip(img,0)
+    return img
 
 data_transforms = {
     'train': transforms.Compose([
